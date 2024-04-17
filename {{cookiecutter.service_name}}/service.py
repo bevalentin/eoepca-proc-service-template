@@ -392,6 +392,18 @@ class EoepcaCalrissianRunnerExecutionHandler(ExecutionHandler):
             raise(e)
 
 
+def fix_inputs(inputs):
+    # Issue: All input values are received as strings, even if they were int, float, etc.
+    for key in inputs.keys():
+        value = inputs[key].get("value", None)
+        # Issue in the issue: The "float" datatype is not present in the inputs data
+        dtype = inputs[key].get("dataType", "float")
+        if dtype == "integer" and isinstance(value, str):
+            inputs[key]["value"] = int(value)
+        if dtype == "float" and isinstance(value, str):
+            inputs[key]["value"] = float(value)
+
+
 def {{cookiecutter.workflow_id |replace("-", "_")  }}(conf, inputs, outputs): # noqa
 
     try:
@@ -405,6 +417,11 @@ def {{cookiecutter.workflow_id |replace("-", "_")  }}(conf, inputs, outputs): # 
             cwl = yaml.safe_load(stream)
 
         execution_handler = EoepcaCalrissianRunnerExecutionHandler(conf=conf)
+
+        fix_inputs(inputs)
+        logger.debug("Config:\n%s", json.dumps(conf, indent=2))
+        logger.debug("Inputs:\n%s", json.dumps(inputs, indent=2))
+        logger.debug("Outputs:\n%s", json.dumps(outputs, indent=2))
 
         runner = ZooCalrissianRunner(
             cwl=cwl,
